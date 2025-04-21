@@ -1,31 +1,71 @@
-# 📝 CRUD App
+const express = require('express');
+const fs = require('fs');
+const app = express();
 
-A simple CRUD (Create, Read, Update, Delete) application that allows users to manage data items efficiently.
+app.use(express.json());
 
-## 🚀 Features
+// File Path
+const FILE_PATH = './data.json';
 
-- Create new items
-- Read/view existing items
-- Update existing items
-- Delete items
-- RESTful API architecture
+// Read Data from JSON
+const readData = () => {
+  const data = fs.readFileSync(FILE_PATH);
+  return JSON.parse(data);
+};
 
+// Write Data to JSON
+const writeData = (data) => {
+  fs.writeFileSync(FILE_PATH, JSON.stringify(data, null, 2));
+};
 
-## 🛠 Tech Stack
+// ✅ Create - Add a New Record
+app.post('/users', (req, res) => {
+  const users = readData();
+  const newUser = { id: Date.now(), ...req.body };
+  users.push(newUser);
+  writeData(users);
+  res.status(201).json(newUser);
+});
 
-- **Frontend:** HTML, CSS, JavaScript (or React)
-- **Backend:** Node.js + Express
+// ✅ Read - Get All Users
+app.get('/users', (req, res) => {
+  const users = readData();
+  res.json(users);
+});
 
+// ✅ Read - Get User by ID
+app.get('/users/:id', (req, res) => {
+  const users = readData();
+  const user = users.find(u => u.id == req.params.id);
+  if (!user) return res.status(404).json({ error: "User not found" });
+  res.json(user);
+});
 
-## 📦 Installation 
-```bash
-# Clone the repository
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+// ✅ Update - Edit User by ID
+app.put('/users/:id', (req, res) => {
+  const users = readData();
+  const index = users.findIndex(u => u.id == req.params.id);
+  if (index === -1) return res.status(404).json({ error: "User not found" });
 
-# Install dependencies
-npm install
+  users[index] = { ...users[index], ...req.body };
+  writeData(users);
+  res.json(users[index]);
+});
 
-# Run the application
-npm start
+// ✅ Delete - Remove User by ID
+app.delete('/users/:id', (req, res) => {
+  let users = readData();
+  const newUsers = users.filter(u => u.id != req.params.id);
 
+  if (users.length === newUsers.length) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  writeData(newUsers);
+  res.json({ message: "User deleted successfully" });
+});
+
+// Start the Server
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
